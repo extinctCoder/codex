@@ -1,0 +1,150 @@
+# yaml-language-server: $schema=../../aggregate-schema.json
+
+tables:
+  - name: sink_flows
+    if_not_exists: true
+    x_sink: { aggregate: flow }
+    columns:
+      flow_id: { type: uuid, x_role: Id }
+      name: { type: text, default: "''" }
+      description: { type: text, default: "''" }
+      is_deleted: { type: boolean, default: "false" }
+    primary_key: { name: sink_flows_pkey, columns: [flow_id] }
+    indexes:
+      - {
+          name: index_sink_flows_name_trgm,
+          columns: ["name gin_trgm_ops"],
+          using: gin,
+        }
+      - {
+          name: index_sink_flows_description_trgm,
+          columns: ["description gin_trgm_ops"],
+          using: gin,
+        }
+
+  - name: snap_flows
+    if_not_exists: true
+    x_aggregate: { name: flow }
+    x_partials: [versioned_audit]
+    columns:
+      flow_id: { type: uuid, x_role: Id }
+      identity_project_id: { type: text, default: "''" }
+      hooks_project_id: { type: text, default: "''" }
+      vault_project_id: { type: text, default: "''" }
+      input_constraints: { type: jsonb, default: "'[]'" }
+      last_published: { type: timestamptz, "null": true }
+    primary_key: { name: snap_flows_pkey, columns: [flow_id, version] }
+    indexes:
+      - {
+          name: index_snap_flows_latest,
+          columns: [flow_id, "version DESC"],
+          where: "is_deleted = false",
+        }
+      - {
+          name: index_snap_flows_identity_project_id,
+          columns: [identity_project_id],
+        }
+      - { name: index_snap_flows_correlation_id, columns: [correlation_id] }
+      - {
+          name: index_snap_flows_edition,
+          columns: [flow_id, last_published, version],
+        }
+
+views:
+  - name: flows
+    or_replace: true
+    x_aggregate: { name: flow, list: default }
+    select:
+      - {
+          column: flow_id,
+          from: latest_version,
+          as: id,
+          x_role: Id,
+          x_filterable: true,
+          x_selectable: false,
+        }
+      - {
+          column: identity_project_id,
+          from: latest_version,
+          x_selectable: false,
+        }
+      - { column: hooks_project_id, from: latest_version }
+      - { column: vault_project_id, from: latest_version }
+      - { column: name, from: sink, x_filterable: true, x_searchable: true }
+      - {
+          column: description,
+          from: sink,
+          x_filterable: true,
+          x_searchable: true,
+        }
+      - { column: input_constraints, from: latest_version }
+      - { column: version, from: latest_version, x_filterable: true }
+      - { column: release, from: latest_version, x_filterable: true }
+      - { column: correlation_id, from: latest_version, x_filterable: true }
+      - {
+          column: occurred_at,
+          from: latest_version,
+          as: updated_at,
+          x_filterable: true,
+        }
+      - { column: actor_type, from: latest_version, as: updated_by_type }
+      - { column: actor_id, from: latest_version, as: updated_by_id }
+      - {
+          column: occurred_at,
+          from: first_version,
+          as: created_at,
+          x_filterable: true,
+        }
+      - { column: actor_type, from: first_version, as: created_by_type }
+      - { column: actor_id, from: first_version, as: created_by_id }
+    from:
+      subquery:
+        select: "*, (DENSE_RANK() OVER (PARTITION BY flow_id ORDER BY
+          last_published NULLS FIRST) - 1)::text || '.' || (ROW_NUMBER() OVER
+          (PARTITION BY flow_id, last_published ORDER BY version) - 1)::text AS
+          release"
+        from: snap_flows
+        distinct_on: [flow_id]
+        where: "is_deleted = false"
+        order_by: "flow_id, version DESC"
+      as: latest_version
+    join:
+      - subquery:
+          select: "flow_id, occurred_at, actor_type, actor_id"
+          from: snap_flows
+          distinct_on: [flow_id]
+          order_by: "flow_id, version ASC"
+        as: first_version
+        "on": "latest_version.flow_id = first_version.flow_id"
+      - table: sink_flows
+        as: sink
+        type: left
+        "on": "latest_version.flow_id = sink.flow_id"
+
+  - name: deleted_flows
+    or_replace: true
+    x_aggregate: { name: flow, list: deleted }
+    distinct_on: [snap.flow_id]
+    select:
+      - {
+          column: flow_id,
+          from: snap,
+          as: id,
+          x_role: Id,
+          x_filterable: true,
+          x_selectable: false,
+        }
+      - { column: name, from: sink, x_filterable: true, x_searchable: true }
+      - { column: identity_project_id, from: snap, x_selectable: false }
+      - { column: description, from: sink, x_searchable: true }
+      - { column: actor_type, from: snap, as: deleted_by_type }
+      - { column: actor_id, from: snap, as: deleted_by_id }
+      - { column: occurred_at, from: snap, as: deleted_at, x_filterable: true }
+    from: { table: snap_flows, as: snap }
+    join:
+      - table: sink_flows
+        as: sink
+        type: left
+        "on": "snap.flow_id = sink.flow_id"
+    where: "snap.is_deleted = true"
+    order_by: "snap.flow_id, snap.version DESC"

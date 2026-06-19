@@ -1,0 +1,147 @@
+# yaml-language-server: $schema=../../aggregate-schema.json
+
+views:
+  - name: flow_versions
+    or_replace: true
+    x_aggregate: { name: flow, list: versions }
+    select:
+      - {
+          column: flow_id,
+          from: versioned,
+          as: id,
+          x_role: Id,
+          x_filterable: true,
+        }
+      - {
+          column: version,
+          from: versioned,
+          x_role: Reference,
+          x_filterable: true,
+        }
+      - { sql: "(DENSE_RANK() OVER (PARTITION BY versioned.flow_id ORDER BY
+            versioned.last_published NULLS FIRST) - 1)::text || '.' ||
+            (ROW_NUMBER() OVER (PARTITION BY versioned.flow_id,
+            versioned.last_published ORDER BY versioned.version) - 1)::text", as: release, x_filterable: true }
+      - {
+          column: identity_project_id,
+          from: versioned,
+          x_filterable: true,
+          x_selectable: false,
+        }
+      - { column: name, from: sink }
+      - { column: node_count, from: versioned }
+      - { column: connection_count, from: versioned }
+      - {
+          sql: "versioned.node_count - LAG(versioned.node_count, 1, 0::bigint) OVER w",
+          as: nodes_delta,
+        }
+      - {
+          sql:
+            "versioned.connection_count - LAG(versioned.connection_count, 1, 0::bigint)
+            OVER w",
+          as: connections_delta,
+        }
+      - { column: actor_type, from: versioned }
+      - { column: actor_id, from: versioned }
+      - { column: occurred_at, from: versioned, x_filterable: true }
+    from:
+      subquery:
+        select:
+          "flow.flow_id, flow.version, flow.identity_project_id, flow.actor_type,
+          flow.actor_id, flow.occurred_at, flow.last_published, (SELECT COUNT(*)
+          FROM snap_nodes WHERE flow_id = flow.flow_id AND version = flow.version
+          AND is_deleted = false) AS node_count, (SELECT COUNT(*) FROM
+          snap_connections WHERE flow_id = flow.flow_id AND version = flow.version
+          AND is_deleted = false) AS connection_count"
+        from: snap_flows
+        as: flow
+        order_by: "flow.flow_id, flow.version"
+      as: versioned
+    join:
+      - table: sink_flows
+        as: sink
+        type: left
+        "on": "versioned.flow_id = sink.flow_id"
+    window:
+      { name: w, partition_by: versioned.flow_id, order_by: versioned.version }
+
+  - name: flow_history
+    or_replace: true
+    x_aggregate: { name: flow, detail: history }
+    select:
+      - { column: flow_id, from: flow, as: id, x_role: Id, x_filterable: true }
+      - { column: version, from: flow, x_role: Reference, x_filterable: true }
+      - { sql: "(DENSE_RANK() OVER (PARTITION BY flow.flow_id ORDER BY
+            flow.last_published NULLS FIRST) - 1)::text || '.' || (ROW_NUMBER()
+            OVER (PARTITION BY flow.flow_id, flow.last_published ORDER BY
+            flow.version) - 1)::text", as: release, x_filterable: true }
+      - {
+          column: identity_project_id,
+          from: flow,
+          x_filterable: true,
+          x_selectable: false,
+        }
+      - { column: occurred_at, from: flow, x_filterable: true }
+      - as: flow
+        json_object:
+          - { column: flow_id, from: flow, as: id }
+          - { column: identity_project_id, from: flow }
+          - { column: hooks_project_id, from: flow }
+          - { column: vault_project_id, from: flow }
+          - { column: input_constraints, from: flow }
+          - { column: name, from: sink }
+          - { column: description, from: sink }
+      - as: nodes
+        from: flow
+        json_agg:
+          from: snap_nodes
+          as: node
+          key: node_id
+          join_on: flow_id
+          select:
+            - { column: node_key }
+            - { column: node_type }
+            - { column: parent_node_id }
+            - { column: slot }
+            - { column: slot_key }
+            - { column: body_type }
+            - { column: source }
+            - { column: disburse_method }
+            - { column: batch_size }
+            - { column: max_iterations }
+            - { column: prompt }
+            - { column: parameters }
+            - { column: transformations }
+            - { column: schema }
+      - as: connections
+        from: flow
+        json_agg:
+          from: snap_connections
+          as: connection
+          key: connection_id
+          join_on: flow_id
+          select:
+            - { column: source_node_id }
+            - { column: parent_node_id }
+            - { column: slot }
+            - { column: slot_key }
+      - as: destinations
+        from: flow
+        json_agg:
+          from: snap_connection_destinations
+          as: destination
+          key: destination_id
+          join_on: flow_id
+          select:
+            - { column: connection_id }
+            - { column: destination_node_id }
+            - { column: execute_when }
+            - { column: parent_node_id }
+            - { column: slot }
+            - { column: slot_key }
+    from: { table: snap_flows, as: flow }
+    join:
+      - table: sink_flows
+        as: sink
+        type: left
+        "on": "flow.flow_id = sink.flow_id"

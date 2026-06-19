@@ -1,0 +1,1290 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "sql-ddl.schema.json",
+    "title": "SQL DDL Schema",
+    "description": "SQL DDL expressed in YAML — extensions, types, sequences, tables, indexes, and views. SQL keys mirror Postgres keywords; application metadata uses the x_ prefix.",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "x_partials": {
+            "$ref": "#/$defs/x_partials"
+        },
+        "extensions": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/extension"
+            }
+        },
+        "types": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/type"
+            }
+        },
+        "tables": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/table"
+            }
+        },
+        "sequences": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/sequence"
+            }
+        },
+        "indexes": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/standalone_index"
+            }
+        },
+        "views": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/view"
+            }
+        }
+    },
+    "$defs": {
+        "sql_expression": {
+            "description": "Raw SQL expression — passed through to output unchanged.",
+            "type": "string"
+        },
+        "x_partials": {
+            "description": "Reusable groups of column definitions or select items.",
+            "type": "object",
+            "additionalProperties": {
+                "oneOf": [
+                    {
+                        "$ref": "#/$defs/x_partial_columns"
+                    },
+                    {
+                        "$ref": "#/$defs/x_partial_select"
+                    }
+                ]
+            }
+        },
+        "x_partial_columns": {
+            "description": "Partial — reusable set of column definitions.",
+            "type": "object",
+            "required": [
+                "columns"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "columns": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/$defs/column_definition"
+                    }
+                }
+            }
+        },
+        "x_partial_select": {
+            "description": "Partial — reusable set of view select items, with optional default FROM alias.",
+            "type": "object",
+            "required": [
+                "select"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "from": {
+                    "type": "string"
+                },
+                "select": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/$defs/x_partial_select_column"
+                    }
+                }
+            }
+        },
+        "x_partial_injection": {
+            "description": "References to partials — a string uses the partial's default FROM alias; an object overrides it.",
+            "type": "array",
+            "items": {
+                "oneOf": [
+                    {
+                        "type": "string"
+                    },
+                    {
+                        "type": "object",
+                        "required": [
+                            "partial"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                            "partial": {
+                                "type": "string"
+                            },
+                            "from": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        "x_partial_select_column": {
+            "description": "Select item within a partial — the key is the output name, and column is the source, defaulting to the key.",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "column": {
+                    "type": "string"
+                },
+                "x_role": {
+                    "$ref": "#/$defs/x_role_enum"
+                },
+                "x_filterable": {
+                    "type": "boolean"
+                },
+                "x_searchable": {
+                    "type": "boolean"
+                },
+                "x_selectable": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "x_role_enum": {
+            "description": "DDD column role — Id is the row identity, Reference points to the parent aggregate root, Data is everything else.",
+            "type": "string",
+            "enum": [
+                "Id",
+                "Reference",
+                "Data"
+            ]
+        },
+        "x_read_shape_keys": {
+            "oneOf": [
+                {
+                    "required": [
+                        "list"
+                    ]
+                },
+                {
+                    "required": [
+                        "detail"
+                    ]
+                }
+            ]
+        },
+        "x_aggregate_table": {
+            "description": "Marks a table as the root write surface of an aggregate.",
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "x_aggregate_view": {
+            "description": "Marks a view as a root read surface of an aggregate.",
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "list": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "detail": {
+                    "type": "string",
+                    "minLength": 1
+                }
+            },
+            "allOf": [
+                {
+                    "$ref": "#/$defs/x_read_shape_keys"
+                }
+            ]
+        },
+        "x_entity_table": {
+            "description": "Marks a table as a sub-entity of an aggregate.",
+            "type": "object",
+            "required": [
+                "aggregate",
+                "name"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "aggregate": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "as": {
+                    "type": "string",
+                    "description": "Display alias used as the response key in composition payloads. Defaults to `name` when omitted."
+                }
+            }
+        },
+        "x_entity_view": {
+            "description": "Marks a view as a sub-entity read surface of an aggregate.",
+            "type": "object",
+            "required": [
+                "aggregate",
+                "name"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "aggregate": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "list": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "detail": {
+                    "type": "string",
+                    "minLength": 1
+                }
+            },
+            "allOf": [
+                {
+                    "$ref": "#/$defs/x_read_shape_keys"
+                }
+            ]
+        },
+        "x_sink": {
+            "description": "Marks a table as a mutable sink — attached to an aggregate root when no entity is set, or to a named entity of that aggregate.",
+            "type": "object",
+            "required": [
+                "aggregate"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "aggregate": {
+                    "type": "string"
+                },
+                "entity": {
+                    "type": "string"
+                }
+            }
+        },
+        "column_ref": {
+            "description": "Column reference — alias.column AS name.",
+            "type": "object",
+            "required": [
+                "column"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "column": {
+                    "type": "string"
+                },
+                "from": {
+                    "type": "string"
+                },
+                "as": {
+                    "type": "string"
+                }
+            }
+        },
+        "join_condition": {
+            "description": "Join predicate — equality between two column references; multiple predicates are AND-ed.",
+            "type": "object",
+            "required": [
+                "left",
+                "right"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "left": {
+                    "$ref": "#/$defs/column_ref"
+                },
+                "right": {
+                    "$ref": "#/$defs/column_ref"
+                }
+            }
+        },
+        "on_clause": {
+            "description": "ON — structured join conditions or raw SQL expression.",
+            "oneOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/join_condition"
+                    },
+                    "minItems": 1
+                }
+            ]
+        },
+        "where_condition": {
+            "description": "WHERE predicate — column, operator, and value; multiple predicates are AND-ed.",
+            "type": "object",
+            "required": [
+                "column",
+                "op"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "column": {
+                    "type": "string"
+                },
+                "from": {
+                    "type": "string"
+                },
+                "op": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "where_clause": {
+            "description": "WHERE — structured conditions or raw SQL expression.",
+            "oneOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/where_condition"
+                    },
+                    "minItems": 1
+                }
+            ]
+        },
+        "order_by_item": {
+            "description": "ORDER BY item — column with optional direction.",
+            "type": "object",
+            "required": [
+                "column"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "column": {
+                    "type": "string"
+                },
+                "from": {
+                    "type": "string"
+                },
+                "direction": {
+                    "type": "string"
+                }
+            }
+        },
+        "order_by_clause": {
+            "description": "ORDER BY — structured column list or raw SQL expression.",
+            "oneOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/order_by_item"
+                    },
+                    "minItems": 1
+                }
+            ]
+        },
+        "group_by_clause": {
+            "description": "GROUP BY — structured column list or raw SQL expression.",
+            "oneOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/column_ref"
+                    },
+                    "minItems": 1
+                }
+            ]
+        },
+        "extension": {
+            "description": "CREATE EXTENSION.",
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "if_not_exists": {
+                    "type": "boolean"
+                },
+                "schema": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
+        "type": {
+            "description": "CREATE TYPE — enum or composite.",
+            "oneOf": [
+                {
+                    "$ref": "#/$defs/type_enum"
+                },
+                {
+                    "$ref": "#/$defs/type_composite"
+                }
+            ]
+        },
+        "type_enum": {
+            "description": "CREATE TYPE name AS ENUM (values).",
+            "type": "object",
+            "required": [
+                "name",
+                "enum"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "enum": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "minItems": 1
+                }
+            }
+        },
+        "type_composite": {
+            "description": "CREATE TYPE name AS (columns).",
+            "type": "object",
+            "required": [
+                "name",
+                "columns"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "columns": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/$defs/column_definition"
+                    }
+                }
+            }
+        },
+        "sequence": {
+            "description": "CREATE SEQUENCE.",
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "as": {
+                    "type": "string"
+                },
+                "increment_by": {
+                    "type": "integer"
+                },
+                "min_value": {
+                    "type": "integer"
+                },
+                "max_value": {
+                    "type": "integer"
+                },
+                "start_with": {
+                    "type": "integer"
+                },
+                "cache": {
+                    "type": "integer"
+                },
+                "cycle": {
+                    "type": "boolean"
+                },
+                "owned_by": {
+                    "type": "string"
+                }
+            }
+        },
+        "column_definition": {
+            "description": "Column — type, nullability, optional default, and DDD role annotation. Tables are write surfaces; client-read flags (x_filterable / x_searchable / x_selectable) live on view select items, not here.",
+            "type": "object",
+            "required": [
+                "type"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "type": {
+                    "description": "Built-in Postgres type, or the name of a declared enum type; enum names are cross-checked in the semantic pass.",
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "enum": [
+                                "text",
+                                "uuid",
+                                "boolean",
+                                "timestamptz",
+                                "jsonb",
+                                "bigint",
+                                "integer",
+                                "smallint",
+                                "text[]"
+                            ]
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]*$"
+                        }
+                    ]
+                },
+                "default": {
+                    "type": "string"
+                },
+                "null": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "x_role": {
+                    "$ref": "#/$defs/x_role_enum"
+                }
+            }
+        },
+        "table": {
+            "description": "CREATE TABLE — accepts at most one of x_aggregate, x_entity, or x_sink, or none for system tables.",
+            "type": "object",
+            "required": [
+                "name",
+                "columns"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "if_not_exists": {
+                    "type": "boolean"
+                },
+                "x_partials": {
+                    "$ref": "#/$defs/x_partial_injection"
+                },
+                "x_aggregate": {
+                    "$ref": "#/$defs/x_aggregate_table"
+                },
+                "x_entity": {
+                    "$ref": "#/$defs/x_entity_table"
+                },
+                "x_sink": {
+                    "$ref": "#/$defs/x_sink"
+                },
+                "columns": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/$defs/column_definition"
+                    }
+                },
+                "primary_key": {
+                    "$ref": "#/$defs/primary_key"
+                },
+                "foreign_keys": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/foreign_key"
+                    }
+                },
+                "unique": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/unique_constraint"
+                    }
+                },
+                "check": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/check_constraint"
+                    }
+                },
+                "indexes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/index"
+                    }
+                }
+            },
+            "allOf": [
+                {
+                    "description": "At most one of x_aggregate, x_entity, or x_sink.",
+                    "not": {
+                        "anyOf": [
+                            {
+                                "required": [
+                                    "x_aggregate",
+                                    "x_entity"
+                                ]
+                            },
+                            {
+                                "required": [
+                                    "x_aggregate",
+                                    "x_sink"
+                                ]
+                            },
+                            {
+                                "required": [
+                                    "x_entity",
+                                    "x_sink"
+                                ]
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+        "primary_key": {
+            "description": "CONSTRAINT name PRIMARY KEY (columns).",
+            "type": "object",
+            "required": [
+                "columns"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "columns": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "minItems": 1
+                }
+            }
+        },
+        "foreign_key": {
+            "description": "CONSTRAINT name FOREIGN KEY (columns) REFERENCES table (columns).",
+            "type": "object",
+            "required": [
+                "columns",
+                "references"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "columns": {
+                    "oneOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            },
+                            "minItems": 1
+                        }
+                    ]
+                },
+                "references": {
+                    "type": "string"
+                },
+                "references_columns": {
+                    "oneOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            },
+                            "minItems": 1
+                        }
+                    ]
+                },
+                "on_delete": {
+                    "type": "string"
+                },
+                "on_update": {
+                    "type": "string"
+                }
+            }
+        },
+        "unique_constraint": {
+            "description": "CONSTRAINT name UNIQUE (columns).",
+            "type": "object",
+            "required": [
+                "columns"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "columns": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "minItems": 1
+                }
+            }
+        },
+        "check_constraint": {
+            "description": "CONSTRAINT name CHECK (expression).",
+            "type": "object",
+            "required": [
+                "expression"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "expression": {
+                    "$ref": "#/$defs/sql_expression"
+                }
+            }
+        },
+        "index": {
+            "description": "CREATE INDEX — inline, attached to the enclosing table.",
+            "type": "object",
+            "required": [
+                "name",
+                "columns"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "if_not_exists": {
+                    "type": "boolean"
+                },
+                "columns": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "minItems": 1
+                },
+                "include": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "using": {
+                    "type": "string"
+                },
+                "where": {
+                    "$ref": "#/$defs/sql_expression"
+                },
+                "unique": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "standalone_index": {
+            "description": "CREATE INDEX — standalone, references its table by name.",
+            "type": "object",
+            "required": [
+                "name",
+                "table",
+                "columns"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "if_not_exists": {
+                    "type": "boolean"
+                },
+                "table": {
+                    "type": "string"
+                },
+                "columns": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "minItems": 1
+                },
+                "include": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "using": {
+                    "type": "string"
+                },
+                "where": {
+                    "$ref": "#/$defs/sql_expression"
+                },
+                "unique": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "view": {
+            "description": "CREATE VIEW AS SELECT — accepts at most one of x_aggregate or x_entity; never x_sink.",
+            "type": "object",
+            "required": [
+                "name",
+                "select",
+                "from"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "or_replace": {
+                    "type": "boolean"
+                },
+                "x_partials": {
+                    "$ref": "#/$defs/x_partial_injection"
+                },
+                "x_aggregate": {
+                    "$ref": "#/$defs/x_aggregate_view"
+                },
+                "x_entity": {
+                    "$ref": "#/$defs/x_entity_view"
+                },
+                "distinct": {
+                    "type": "boolean"
+                },
+                "distinct_on": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "select": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/select_item"
+                    },
+                    "minItems": 1
+                },
+                "from": {
+                    "$ref": "#/$defs/from_clause"
+                },
+                "join": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/join_clause"
+                    }
+                },
+                "where": {
+                    "$ref": "#/$defs/where_clause"
+                },
+                "group_by": {
+                    "$ref": "#/$defs/group_by_clause"
+                },
+                "having": {
+                    "$ref": "#/$defs/sql_expression"
+                },
+                "order_by": {
+                    "$ref": "#/$defs/order_by_clause"
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "offset": {
+                    "type": "integer"
+                },
+                "window": {
+                    "$ref": "#/$defs/window_clause"
+                }
+            },
+            "allOf": [
+                {
+                    "description": "At most one of x_aggregate or x_entity.",
+                    "not": {
+                        "required": [
+                            "x_aggregate",
+                            "x_entity"
+                        ]
+                    }
+                }
+            ]
+        },
+        "from_clause": {
+            "description": "FROM — table reference or subquery.",
+            "oneOf": [
+                {
+                    "$ref": "#/$defs/from_table"
+                },
+                {
+                    "$ref": "#/$defs/from_subquery"
+                }
+            ]
+        },
+        "from_table": {
+            "description": "FROM table AS alias.",
+            "type": "object",
+            "required": [
+                "table"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "table": {
+                    "type": "string"
+                },
+                "as": {
+                    "type": "string"
+                }
+            }
+        },
+        "from_subquery": {
+            "description": "FROM (subquery) AS alias.",
+            "type": "object",
+            "required": [
+                "subquery",
+                "as"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "subquery": {
+                    "$ref": "#/$defs/subquery"
+                },
+                "as": {
+                    "type": "string"
+                }
+            }
+        },
+        "subquery": {
+            "description": "Inline subquery of the form (SELECT ... FROM ... WHERE ... ORDER BY ...).",
+            "type": "object",
+            "required": [
+                "select",
+                "from"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "select": {
+                    "type": "string"
+                },
+                "from": {
+                    "type": "string"
+                },
+                "as": {
+                    "type": "string"
+                },
+                "distinct": {
+                    "type": "boolean"
+                },
+                "distinct_on": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "where": {
+                    "$ref": "#/$defs/where_clause"
+                },
+                "group_by": {
+                    "$ref": "#/$defs/group_by_clause"
+                },
+                "having": {
+                    "$ref": "#/$defs/sql_expression"
+                },
+                "order_by": {
+                    "$ref": "#/$defs/order_by_clause"
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "offset": {
+                    "type": "integer"
+                }
+            }
+        },
+        "join_clause": {
+            "description": "JOIN — table or subquery.",
+            "oneOf": [
+                {
+                    "$ref": "#/$defs/join_table"
+                },
+                {
+                    "$ref": "#/$defs/join_subquery"
+                }
+            ]
+        },
+        "join_table": {
+            "description": "JOIN table AS alias, with ON or USING.",
+            "type": "object",
+            "required": [
+                "table",
+                "as"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "type": {
+                    "type": "string"
+                },
+                "table": {
+                    "type": "string"
+                },
+                "as": {
+                    "type": "string"
+                },
+                "on": {
+                    "$ref": "#/$defs/on_clause"
+                },
+                "using": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "minItems": 1
+                }
+            }
+        },
+        "join_subquery": {
+            "description": "JOIN (subquery) AS alias, with ON or USING.",
+            "type": "object",
+            "required": [
+                "subquery",
+                "as"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "type": {
+                    "type": "string"
+                },
+                "subquery": {
+                    "$ref": "#/$defs/subquery"
+                },
+                "as": {
+                    "type": "string"
+                },
+                "on": {
+                    "$ref": "#/$defs/on_clause"
+                },
+                "using": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "minItems": 1
+                }
+            }
+        },
+        "select_item": {
+            "description": "SELECT item — column, expression, json_object, or json_agg.",
+            "oneOf": [
+                {
+                    "$ref": "#/$defs/select_column"
+                },
+                {
+                    "$ref": "#/$defs/select_expression"
+                },
+                {
+                    "$ref": "#/$defs/select_json_object"
+                },
+                {
+                    "$ref": "#/$defs/select_json_agg"
+                }
+            ]
+        },
+        "select_column": {
+            "description": "SELECT column — alias.column AS name, with optional x_role, x_filterable, x_searchable, and x_selectable annotations.",
+            "type": "object",
+            "required": [
+                "column"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "column": {
+                    "type": "string"
+                },
+                "from": {
+                    "type": "string"
+                },
+                "as": {
+                    "type": "string"
+                },
+                "x_role": {
+                    "$ref": "#/$defs/x_role_enum"
+                },
+                "x_filterable": {
+                    "type": "boolean"
+                },
+                "x_searchable": {
+                    "type": "boolean"
+                },
+                "x_selectable": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "select_expression": {
+            "description": "SELECT raw SQL expression — with optional alias and optional x_role, x_filterable, x_searchable, and x_selectable annotations.",
+            "type": "object",
+            "required": [
+                "sql"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "sql": {
+                    "$ref": "#/$defs/sql_expression"
+                },
+                "as": {
+                    "type": "string"
+                },
+                "x_role": {
+                    "$ref": "#/$defs/x_role_enum"
+                },
+                "x_filterable": {
+                    "type": "boolean"
+                },
+                "x_searchable": {
+                    "type": "boolean"
+                },
+                "x_selectable": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "select_json_object": {
+            "description": "SELECT jsonb_build_object from structured column references — defaults: x_role=Data, x_filterable=false, x_searchable=false, x_selectable=true.",
+            "type": "object",
+            "required": [
+                "as",
+                "json_object"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "as": {
+                    "type": "string"
+                },
+                "json_object": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/column_ref"
+                    },
+                    "minItems": 1
+                },
+                "x_role": {
+                    "$ref": "#/$defs/x_role_enum"
+                },
+                "x_filterable": {
+                    "type": "boolean"
+                },
+                "x_searchable": {
+                    "type": "boolean"
+                },
+                "x_selectable": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "select_json_agg": {
+            "description": "SELECT COALESCE(jsonb_agg(jsonb_build_object(...))) from a related table — defaults: x_role=Data, x_filterable=false, x_searchable=false, x_selectable=true.",
+            "type": "object",
+            "required": [
+                "as",
+                "from",
+                "json_agg"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "as": {
+                    "type": "string"
+                },
+                "from": {
+                    "type": "string"
+                },
+                "json_agg": {
+                    "type": "object",
+                    "required": [
+                        "from",
+                        "as",
+                        "key",
+                        "join_on",
+                        "select"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                        "from": {
+                            "type": "string"
+                        },
+                        "as": {
+                            "type": "string"
+                        },
+                        "key": {
+                            "type": "string"
+                        },
+                        "join_on": {
+                            "type": "string"
+                        },
+                        "select": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/$defs/column_ref"
+                            },
+                            "minItems": 1
+                        }
+                    }
+                },
+                "x_role": {
+                    "$ref": "#/$defs/x_role_enum"
+                },
+                "x_filterable": {
+                    "type": "boolean"
+                },
+                "x_searchable": {
+                    "type": "boolean"
+                },
+                "x_selectable": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "window_clause": {
+            "description": "WINDOW name AS (PARTITION BY ... ORDER BY ... frame).",
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "partition_by": {
+                    "type": "string"
+                },
+                "order_by": {
+                    "type": "string"
+                },
+                "frame": {
+                    "$ref": "#/$defs/sql_expression"
+                }
+            }
+        }
+    }
+}

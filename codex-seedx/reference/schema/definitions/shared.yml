@@ -1,0 +1,114 @@
+# yaml-language-server: $schema=../aggregate-schema.json
+
+x_partials:
+  versioned_audit:
+    columns:
+      version: { type: bigint }
+      is_deleted: { type: boolean, default: "false" }
+      actor_type: { type: actor_type, default: "'Anonymous'::actor_type" }
+      actor_id: { type: text, default: "''" }
+      correlation_id: { type: uuid }
+      occurred_at: { type: timestamptz }
+
+extensions:
+  - { name: timescaledb, if_not_exists: true }
+  - { name: pg_trgm, if_not_exists: true }
+  - { name: pg_buffercache, if_not_exists: true }
+  - { name: pg_stat_statements, if_not_exists: true }
+
+types:
+  - name: actor_type
+    enum: [Identity, System, Anonymous]
+
+  - name: system_actor
+    enum: [FlowEngine, NodeEngine, Housekeeping, Scheduler]
+
+  - name: execution_status
+    enum:
+      [
+        Pending,
+        Queued,
+        Running,
+        Paused,
+        AwaitingAction,
+        Completed,
+        Failed,
+        Skipped,
+        TimedOut,
+        Canceled,
+      ]
+
+  - name: node_type
+    enum:
+      [
+        Action,
+        Decision,
+        WhileLoop,
+        ForeachLoop,
+        Trigger,
+        Transform,
+        Output,
+        Composite,
+        SubFlow,
+        Scope,
+        AwaitingAction,
+      ]
+
+  - name: disburse_method
+    enum: [Sequential, Batched, Parallel]
+
+  - name: node_body_type
+    enum:
+      [
+        Empty,
+        ForeachLoop,
+        Decision,
+        Composite,
+        WhileLoop,
+        Group,
+        AwaitingAction,
+      ]
+
+  - name: node_execution_parent_type
+    enum: [Root, Iteration, Branch]
+
+  - name: node_execution_directive
+    enum: [Standard, Submitted]
+
+  - name: node_execution_evaluation_type
+    enum: [Standard, ForeachLoop, WhileLoop, Conditional, Composite]
+
+tables:
+  - name: arcv_events
+    if_not_exists: true
+    columns:
+      event_id: { type: uuid }
+      aggregate_version: { type: bigint }
+      aggregate_id: { type: uuid }
+      aggregate_type: { type: text }
+      schema_version: { type: bigint }
+      event_type: { type: text }
+      event_data: { type: jsonb }
+      provenance: { type: jsonb }
+      idempotency_key: { type: text, "null": true }
+      occurred_at: { type: timestamptz, default: "now()" }
+    primary_key: { name: arcv_events_pkey, columns: [event_id] }
+    indexes:
+      - {
+          name: index_arcv_events_aggregate_id_aggregate_version,
+          columns: [aggregate_id, aggregate_version],
+          unique: true,
+        }
+      - {
+          name: index_arcv_events_aggregate_type_aggregate_id,
+          columns: [aggregate_type, aggregate_id],
+        }
+
+  - name: syst_consumer_checkpoints
+    if_not_exists: true
+    columns:
+      consumer_name: { type: text }
+      last_sequence: { type: bigint, default: "0" }
+      updated_at: { type: timestamptz, default: "now()" }
+    primary_key:
+      { name: syst_consumer_checkpoints_pkey, columns: [consumer_name] }

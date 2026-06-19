@@ -1,0 +1,87 @@
+# yaml-language-server: $schema=../../aggregate-schema.json
+
+tables:
+  - name: snap_connections
+    if_not_exists: true
+    x_entity: { aggregate: flow, name: connection, as: connections }
+    x_partials: [ versioned_audit ]
+    columns:
+      flow_id: { type: uuid, x_role: Id }
+      connection_id: { type: uuid, x_role: Reference }
+      source_node_id: { type: uuid }
+      parent_node_id: { type: uuid, "null": true }
+      slot: { type: text, default: "'root'" }
+      slot_key: { type: text, "null": true }
+    primary_key: { name: snap_connections_pkey, columns: [ flow_id, version, connection_id ] }
+    indexes:
+      - {
+          name: index_snap_connections_flow_version,
+          columns: [ flow_id, version ],
+          where: "is_deleted = false",
+        }
+      - {
+          name: index_snap_connections_flow_id_source_node_id,
+          columns: [ flow_id, source_node_id ],
+        }
+      - { name: index_snap_connections_correlation_id, columns: [ correlation_id ] }
+
+views:
+  - name: connections
+    or_replace: true
+    x_entity: { aggregate: flow, name: connection, list: default }
+    select:
+      - { column: flow_id, from: latest_entity, x_role: Id, x_filterable: true }
+      - {
+          column: connection_id,
+          from: latest_entity,
+          as: id,
+          x_role: Reference,
+          x_filterable: true,
+        }
+      - {
+          column: identity_project_id,
+          from: flow,
+          x_filterable: true,
+          x_selectable: false,
+        }
+      - {
+          column: source_node_id,
+          from: latest_entity,
+          x_filterable: true,
+          x_selectable: false,
+        }
+      - { column: parent_node_id, from: latest_entity, x_selectable: false }
+      - { column: slot, from: latest_entity, x_selectable: false }
+      - { column: slot_key, from: latest_entity, x_selectable: false }
+      - { column: version, from: latest_entity, x_filterable: true }
+      - { column: correlation_id, from: latest_entity, x_filterable: true }
+      - {
+          column: occurred_at,
+          from: latest_entity,
+          as: updated_at,
+          x_filterable: true,
+        }
+      - { column: actor_type, from: latest_entity, as: updated_by_type }
+      - { column: actor_id, from: latest_entity, as: updated_by_id }
+      - {
+          column: occurred_at,
+          from: first_entity,
+          as: created_at,
+          x_filterable: true,
+        }
+      - { column: actor_type, from: first_entity, as: created_by_type }
+      - { column: actor_id, from: first_entity, as: created_by_id }
+    from: { table: snap_connections, as: latest_entity }
+    join:
+      - table: flows
+        as: flow
+        "on": "latest_entity.flow_id = flow.id AND latest_entity.version = flow.version"
+      - subquery:
+          select: "flow_id, connection_id, occurred_at, actor_type, actor_id"
+          from: snap_connections
+          distinct_on: [ flow_id, connection_id ]
+          order_by: "flow_id, connection_id, version ASC"
+        as: first_entity
+        "on": "latest_entity.flow_id = first_entity.flow_id AND
+          latest_entity.connection_id = first_entity.connection_id"
+    where: "latest_entity.is_deleted = false"

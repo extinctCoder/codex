@@ -1,0 +1,141 @@
+# yaml-language-server: $schema=../aggregate-schema.json
+
+tables:
+  - name: snap_executions
+    if_not_exists: true
+    x_aggregate: { name: execution }
+    x_partials: [versioned_audit]
+    columns:
+      execution_id: { type: uuid, x_role: Id }
+      flow_id: { type: uuid }
+      flow_version: { type: bigint }
+      identity_project_id: { type: text, default: "''" }
+      status: { type: execution_status }
+      input: { type: jsonb, "null": true }
+      output: { type: jsonb, "null": true }
+      start_time: { type: timestamptz, "null": true }
+      end_time: { type: timestamptz, "null": true }
+      paused_at: { type: timestamptz, "null": true }
+      resumed_at: { type: timestamptz, "null": true }
+    primary_key:
+      { name: snap_executions_pkey, columns: [execution_id, version] }
+    indexes:
+      - {
+          name: index_snap_executions_latest,
+          columns: [execution_id, "version DESC"],
+          where: "is_deleted = false",
+        }
+      - { name: index_snap_executions_flow_id, columns: [flow_id] }
+      - {
+          name: index_snap_executions_flow_id_status,
+          columns: [flow_id, status],
+        }
+      - {
+          name: index_snap_executions_identity_project_id_status,
+          columns: [identity_project_id, status],
+        }
+      - {
+          name: index_snap_executions_identity_project_id_occurred_at,
+          columns: [identity_project_id, occurred_at],
+        }
+      - {
+          name: index_snap_executions_correlation_id,
+          columns: [correlation_id],
+        }
+      - { name: index_snap_executions_end_time, columns: [end_time] }
+
+views:
+  - name: executions
+    or_replace: true
+    x_aggregate: { name: execution, list: default }
+    select:
+      - {
+          column: execution_id,
+          from: latest_version,
+          as: id,
+          x_role: Id,
+          x_filterable: true,
+        }
+      - {
+          column: flow_id,
+          from: latest_version,
+          x_role: Reference,
+          x_filterable: true,
+          x_selectable: false,
+        }
+      - { column: flow_version, from: latest_version, x_filterable: true }
+      - {
+          column: identity_project_id,
+          from: latest_version,
+          x_selectable: false,
+        }
+      - { column: status, from: latest_version, x_filterable: true }
+      - { column: input, from: latest_version }
+      - { column: output, from: latest_version }
+      - { column: start_time, from: latest_version, x_filterable: true }
+      - { column: end_time, from: latest_version, x_filterable: true }
+      - { column: paused_at, from: latest_version, x_filterable: true }
+      - { column: resumed_at, from: latest_version, x_filterable: true }
+      - { column: version, from: latest_version, x_filterable: true }
+      - { column: correlation_id, from: latest_version, x_filterable: true }
+      - {
+          column: occurred_at,
+          from: latest_version,
+          as: updated_at,
+          x_filterable: true,
+        }
+      - { column: actor_type, from: latest_version, as: updated_by_type }
+      - { column: actor_id, from: latest_version, as: updated_by_id }
+      - {
+          column: occurred_at,
+          from: first_version,
+          as: created_at,
+          x_filterable: true,
+        }
+      - { column: actor_type, from: first_version, as: created_by_type }
+      - { column: actor_id, from: first_version, as: created_by_id }
+    from:
+      subquery:
+        select: "*"
+        from: snap_executions
+        distinct_on: [execution_id]
+        where: "is_deleted = false"
+        order_by: "execution_id, version DESC"
+      as: latest_version
+    join:
+      - subquery:
+          select: "execution_id, occurred_at, actor_type, actor_id"
+          from: snap_executions
+          distinct_on: [execution_id]
+          order_by: "execution_id, version ASC"
+        as: first_version
+        "on": "latest_version.execution_id = first_version.execution_id"
+
+  - name: deleted_executions
+    or_replace: true
+    x_aggregate: { name: execution, list: deleted }
+    distinct_on: [execution_id]
+    select:
+      - {
+          column: execution_id,
+          from: snap,
+          as: id,
+          x_role: Id,
+          x_filterable: true,
+        }
+      - {
+          column: flow_id,
+          from: snap,
+          x_role: Reference,
+          x_filterable: true,
+          x_selectable: false,
+        }
+      - { column: flow_version, from: snap, x_filterable: true }
+      - { column: identity_project_id, from: snap, x_selectable: false }
+      - { column: status, from: snap, x_filterable: true }
+      - { column: actor_type, from: snap, as: deleted_by_type }
+      - { column: actor_id, from: snap, as: deleted_by_id }
+      - { column: occurred_at, from: snap, as: deleted_at, x_filterable: true }
+    from: { table: snap_executions, as: snap }
+    where: "is_deleted = true"
+    order_by: "execution_id, version DESC"

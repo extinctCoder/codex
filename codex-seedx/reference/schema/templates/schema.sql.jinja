@@ -1,0 +1,184 @@
+{#- SQL DDL Template — renders any YAML definition to valid SQL. -#}
+{%- macro col_line(col_name, col_def) %}
+    {{ col_name }} {{ col_def.type }}
+{%- if not col_def.get('null', false) %} NOT NULL{% endif %}
+{%- if col_def.default is defined %} DEFAULT {{ col_def.default }}{% endif %}
+{%- endmacro -%}
+
+{%- macro subquery_block(sq) %}
+(
+    SELECT
+{%- if sq.distinct_on is defined %} DISTINCT ON ({{ sq.distinct_on | join(", ") }}){% endif %} {{ sq.select }}
+    FROM {{ sq.from }}{% if sq.as is defined %} {{ sq.as }}{% endif %}
+{%- if sq.where is defined %}
+    WHERE {{ sq.where }}{% endif %}
+{%- if sq.group_by is defined %}
+    GROUP BY {{ sq.group_by }}{% endif %}
+{%- if sq.having is defined %}
+    HAVING {{ sq.having }}{% endif %}
+{%- if sq.order_by is defined %}
+    ORDER BY {{ sq.order_by }}{% endif %}
+{%- if sq.limit is defined %}
+    LIMIT {{ sq.limit }}{% endif %}
+{%- if sq.offset is defined %}
+    OFFSET {{ sq.offset }}{% endif %}
+)
+{%- endmacro -%}
+
+{%- macro select_item_block(col) %}
+{%- if col.json_object is defined %}
+    jsonb_build_object(
+{%- for c in col.json_object %}
+        '{{ c.as | default(c.column) }}', {{ c.from }}.{{ c.column }}{% if not loop.last %},{% endif %}
+{%- endfor %})
+{%- elif col.json_agg is defined %}
+    COALESCE((
+        SELECT jsonb_agg(jsonb_build_object(
+            'id', {{ col.json_agg.as }}.{{ col.json_agg.key }}
+{%- for c in col.json_agg.select %},
+            '{{ c.as | default(c.column) }}', {{ col.json_agg.as }}.{{ c.column }}
+{%- endfor %}))
+        FROM {{ col.json_agg.from }} {{ col.json_agg.as }}
+        WHERE {{ col.json_agg.as }}.{{ col.json_agg.join_on }} = {{ col.from }}.{{ col.json_agg.join_on }}
+            AND {{ col.json_agg.as }}.version = {{ col.from }}.version
+            AND {{ col.json_agg.as }}.is_deleted = false
+    ), '[]'::jsonb)
+{%- elif col.sql is defined %}
+    {{ col.sql }}
+{%- else %}
+    {{ col.from }}.{{ col.column }}
+{%- endif %}
+{%- if col.as is defined %} AS {{ col.as }}{% endif %}
+{%- endmacro -%}
+
+{#- ── Extensions ─────────────────────────────────────────────────── -#}
+{%- for ext in extensions | default([]) %}
+CREATE EXTENSION
+{%- if ext.if_not_exists | default(false) %} IF NOT EXISTS{% endif %} {{ ext.name }}
+{%- if ext.schema is defined %} SCHEMA {{ ext.schema }}{% endif %}
+{%- if ext.version is defined %} VERSION '{{ ext.version }}'{% endif %};
+{% endfor -%}
+
+{#- ── Types ──────────────────────────────────────────────────────── -#}
+{%- for type in types | default([]) %}
+{%- if type.enum is defined %}
+CREATE TYPE {{ type.name }} AS ENUM (
+{%- for val in type.enum %}
+    '{{ val }}'{% if not loop.last %},{% endif %}
+{%- endfor %}
+);
+{% endif -%}
+{%- if type.columns is defined %}
+CREATE TYPE {{ type.name }} AS (
+{%- for col_name, col_def in type.columns.items() %}
+    {{ col_name }} {{ col_def.type }}{% if not loop.last %},{% endif %}
+{%- endfor %}
+);
+{% endif -%}
+{%- endfor -%}
+
+{#- ── Sequences ──────────────────────────────────────────────────── -#}
+{%- for seq in sequences | default([]) %}
+CREATE SEQUENCE {{ seq.name }}
+{%- if seq.as is defined %} AS {{ seq.as }}{% endif %}
+{%- if seq.increment_by is defined %} INCREMENT BY {{ seq.increment_by }}{% endif %}
+{%- if seq.min_value is defined %} MINVALUE {{ seq.min_value }}{% endif %}
+{%- if seq.max_value is defined %} MAXVALUE {{ seq.max_value }}{% endif %}
+{%- if seq.start_with is defined %} START WITH {{ seq.start_with }}{% endif %}
+{%- if seq.cache is defined %} CACHE {{ seq.cache }}{% endif %}
+{%- if seq.cycle is defined %}{% if seq.cycle %} CYCLE{% else %} NO CYCLE{% endif %}{% endif %}
+{%- if seq.owned_by is defined %} OWNED BY {{ seq.owned_by }}{% endif %};
+{% endfor -%}
+
+{#- ── Tables ─────────────────────────────────────────────────────── -#}
+{%- for table in tables | default([]) %}
+{%- set ns = namespace(all_columns={}) -%}
+{%- if table.x_partials is defined -%}
+{%- for ref in table.x_partials -%}
+{%- if ref is string -%}
+{%- set partial = x_partials[ref] -%}
+{%- else -%}
+{%- set partial = x_partials[ref.partial] -%}
+{%- endif -%}
+{%- if partial.columns is defined -%}
+{%- set ns.all_columns = dict(ns.all_columns, **partial.columns) -%}
+{%- endif -%}
+{%- endfor -%}
+{%- endif -%}
+{%- set ns.all_columns = dict(ns.all_columns, **table.columns) %}
+CREATE TABLE{% if table.if_not_exists | default(false) %} IF NOT EXISTS{% endif %} {{ table.name }} (
+{%- for col_name, col_def in ns.all_columns.items() %}
+{{ col_line(col_name, col_def) }}
+{%- if not loop.last or table.primary_key is defined or table.foreign_keys is defined %},{% endif %}
+{%- endfor %}
+{%- if table.primary_key is defined %}
+    {% if table.primary_key.name is defined %}CONSTRAINT {{ table.primary_key.name }} {% endif %}PRIMARY KEY ({{ table.primary_key.columns | join(", ") }})
+{%- if table.foreign_keys is defined %},{% endif %}
+{%- endif %}
+{%- for fk in table.foreign_keys | default([]) %}
+    {% if fk.name is defined %}CONSTRAINT {{ fk.name }} {% endif %}FOREIGN KEY ({% if fk.columns is string %}{{ fk.columns }}{% else %}{{ fk.columns | join(", ") }}{% endif %}) REFERENCES {{ fk.references }}
+{%- if fk.references_columns is defined %} ({% if fk.references_columns is string %}{{ fk.references_columns }}{% else %}{{ fk.references_columns | join(", ") }}{% endif %}){% endif %}
+{%- if fk.on_delete is defined %} ON DELETE {{ fk.on_delete }}{% endif %}
+{%- if fk.on_update is defined %} ON UPDATE {{ fk.on_update }}{% endif %}
+{%- if not loop.last %},{% endif %}
+{%- endfor %}
+);
+{% for idx in table.indexes | default([]) %}
+CREATE{% if idx.unique | default(false) %} UNIQUE{% endif %} INDEX{% if idx.if_not_exists | default(false) %} IF NOT EXISTS{% endif %} {{ idx.name }}
+    ON {{ table.name }}
+{%- if idx.using is defined %} USING {{ idx.using | upper }}({{ idx.columns | join(", ") }})
+{%- else %} ({{ idx.columns | join(", ") }})
+{%- endif %}
+{%- if idx.where is defined %}
+    WHERE {{ idx.where }}
+{%- endif %};
+{% endfor %}
+{% endfor -%}
+
+{#- ── Standalone Indexes ─────────────────────────────────────────── -#}
+{%- for idx in indexes | default([]) %}
+CREATE{% if idx.unique | default(false) %} UNIQUE{% endif %} INDEX{% if idx.if_not_exists | default(false) %} IF NOT EXISTS{% endif %} {{ idx.name }}
+    ON {{ idx.table }}
+{%- if idx.using is defined %} USING {{ idx.using | upper }}({{ idx.columns | join(", ") }})
+{%- else %} ({{ idx.columns | join(", ") }})
+{%- endif %}
+{%- if idx.where is defined %}
+    WHERE {{ idx.where }}
+{%- endif %};
+{% endfor -%}
+
+{#- ── Views ──────────────────────────────────────────────────────── -#}
+{%- for view in views | default([]) %}
+CREATE{% if view.or_replace | default(false) %} OR REPLACE{% endif %} VIEW {{ view.name }} AS
+SELECT
+{%- if view.distinct | default(false) %} DISTINCT{% endif %}
+{%- if view.distinct_on is defined %} DISTINCT ON ({% for dk in view.distinct_on %}{{ dk }}{% if not loop.last %}, {% endif %}{% endfor %}){% endif %}
+{%- for col in view.select %}
+{{ select_item_block(col) }}{% if not loop.last %},{% endif %}
+{%- endfor %}
+FROM
+{%- if view.from.subquery is defined %} {{ subquery_block(view.from.subquery) }} {{ view.from.as }}
+{%- else %} {{ view.from.table }}{% if view.from.as is defined %} {{ view.from.as }}{% endif %}
+{%- endif %}
+{%- for join in view.join | default([]) %}
+{{ join.type | default("INNER") | upper }} JOIN{% if join.subquery is defined %} {{ subquery_block(join.subquery) }} {{ join.as }}{% else %} {{ join.table }} {{ join.as }}{% endif %}
+{%- if join.on is defined %}
+    ON {{ join.on }}{% endif %}
+{%- if join.using is defined %}
+    USING ({{ join.using | join(", ") }}){% endif %}
+{%- endfor %}
+{%- if view.where is defined %}
+WHERE {{ view.where }}{% endif %}
+{%- if view.group_by is defined %}
+GROUP BY {{ view.group_by }}{% endif %}
+{%- if view.having is defined %}
+HAVING {{ view.having }}{% endif %}
+{%- if view.order_by is defined %}
+ORDER BY {{ view.order_by }}{% endif %}
+{%- if view.limit is defined %}
+LIMIT {{ view.limit }}{% endif %}
+{%- if view.offset is defined %}
+OFFSET {{ view.offset }}{% endif %}
+{%- if view.window is defined %}
+WINDOW {{ view.window.name }} AS ({% if view.window.partition_by is defined %}PARTITION BY {{ view.window.partition_by }}{% endif %}{% if view.window.partition_by is defined and view.window.order_by is defined %} {% endif %}{% if view.window.order_by is defined %}ORDER BY {{ view.window.order_by }}{% endif %}{% if view.window.frame is defined %} {{ view.window.frame }}{% endif %}){% endif %};
+{% endfor %}
