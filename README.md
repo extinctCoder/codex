@@ -73,5 +73,4 @@ pre-commit install --install-hooks --hook-type commit-msg
 
 ## License
 
-Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or
-[MIT license](LICENSE-MIT) at your option.
+Licensed under the [Mozilla Public License 2.0](LICENSE).
