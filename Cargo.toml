@@ -5,6 +5,7 @@ edition = "2021"
 description = "Declarative schema & query compiler — one YAML as the source of truth for SQL schema and a type-checked query catalog."
 license = "MPL-2.0"
 repository = "https://github.com/extinctCoder/holocron"
+homepage = "https://extinctcoder.github.io/holocron/"
 keywords = ["sql", "schema", "compiler", "query", "yaml"]
 categories = ["database", "compilers"]
 
