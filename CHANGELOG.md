@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.1.5](https://github.com/extinctCoder/holocron/compare/4e9f3ea0cfa76bda4f6dcbe690ff09f16b4f7251..v0.1.5) - 2026-06-19
+#### Bug Fixes
+- test 4 - ([4e9f3ea](https://github.com/extinctCoder/holocron/commit/4e9f3ea0cfa76bda4f6dcbe690ff09f16b4f7251)) - darthVader
+
+- - -
+
 ## [v0.1.4](https://github.com/extinctCoder/holocron/compare/f330431bcb76eeb4a77b1761f613f836e2345c87..v0.1.4) - 2026-06-19
 #### Bug Fixes
 - test 4 - ([f330431](https://github.com/extinctCoder/holocron/commit/f330431bcb76eeb4a77b1761f613f836e2345c87)) - darthVader
