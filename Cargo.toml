@@ -1,6 +1,6 @@
 [package]
 name = "holocron"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "Declarative schema & query compiler — one YAML as the source of truth for SQL schema and a type-checked query catalog."
 license = "MIT OR Apache-2.0"

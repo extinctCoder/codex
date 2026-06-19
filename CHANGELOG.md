@@ -2,6 +2,16 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.1.2](https://github.com/extinctCoder/holocron/compare/71ae716ca4fbf03a715df914ce1f4398d6172ec5..v0.1.2) - 2026-06-19
+#### Bug Fixes
+- test this 3 - ([46cdf2b](https://github.com/extinctCoder/holocron/commit/46cdf2be30e1b88cf09bdb64f8a637893ed09c2d)) - darthVader
+- test 2 - ([c35f0e9](https://github.com/extinctCoder/holocron/commit/c35f0e92f8d218edd364f7e0b483433201a83527)) - darthVader
+- test - ([fb508e6](https://github.com/extinctCoder/holocron/commit/fb508e6321812edd3663968f3a8ea4972538b1b2)) - darthVader
+- changed ghangelog generation - ([1dd3240](https://github.com/extinctCoder/holocron/commit/1dd32405afb8027a01e1c6f36372c944799b32a3)) - darthVader
+- added github links - ([71ae716](https://github.com/extinctCoder/holocron/commit/71ae716ca4fbf03a715df914ce1f4398d6172ec5)) - darthVader
+
+- - -
+
 ## v0.1.1 - 2026-06-19
 #### Bug Fixes
 - fixed create io release issue - (9681687) - darthVader
