@@ -3,6 +3,7 @@
 [![CI](https://github.com/extinctCoder/holocron/actions/workflows/ci.yml/badge.svg)](https://github.com/extinctCoder/holocron/actions/workflows/ci.yml)
 [![Security Audit](https://github.com/extinctCoder/holocron/actions/workflows/audit.yml/badge.svg)](https://github.com/extinctCoder/holocron/actions/workflows/audit.yml)
 [![dependency status](https://deps.rs/repo/github/extinctCoder/holocron/status.svg)](https://deps.rs/repo/github/extinctCoder/holocron)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/extinctCoder/holocron/badge)](https://securityscorecards.dev/viewer/?uri=github.com/extinctCoder/holocron)
 [![crates.io](https://img.shields.io/crates/v/holocron.svg)](https://crates.io/crates/holocron)
 [![downloads](https://img.shields.io/crates/d/holocron.svg)](https://crates.io/crates/holocron)
 [![docs.rs](https://img.shields.io/docsrs/holocron)](https://docs.rs/holocron)

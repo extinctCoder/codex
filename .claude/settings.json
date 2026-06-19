@@ -67,7 +67,9 @@
       "Bash(env -u SSL_CERT_FILE -u REQUESTS_CA_BUNDLE curl -s -H \"User-Agent: hc\" https://crates.io/api/v1/crates/holocron)",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); c=d.get\\('crate'\\); print\\('PUBLISHED:', [v['num'] for v in d.get\\('versions',[]\\)]\\) if c else print\\('still NOT on crates.io'\\)\")",
       "Bash(env -u SSL_CERT_FILE -u REQUESTS_CA_BUNDLE curl -fsSL https://www.mozilla.org/media/MPL/2.0/index.txt -o LICENSE)",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(python3 -c \"import yaml; d=yaml.safe_load\\(open\\('.github/workflows/scorecard.yml'\\)\\); print\\('scorecard.yml OK — job:', list\\(d['jobs'].keys\\(\\)\\), '| triggers:', list\\(\\(d.get\\(True\\) or d.get\\('on'\\)\\).keys\\(\\)\\)\\)\")",
+      "Bash(env -u SSL_CERT_FILE -u REQUESTS_CA_BUNDLE curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" \"https://api.securityscorecards.dev/projects/github.com/extinctCoder/holocron/badge\")"
     ],
     "additionalDirectories": [
       "/Users/extinctcoder"
