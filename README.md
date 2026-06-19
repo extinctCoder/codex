@@ -1,7 +1,10 @@
 # Holocron
 
 [![CI](https://github.com/extinctCoder/holocron/actions/workflows/ci.yml/badge.svg)](https://github.com/extinctCoder/holocron/actions/workflows/ci.yml)
+[![Security Audit](https://github.com/extinctCoder/holocron/actions/workflows/audit.yml/badge.svg)](https://github.com/extinctCoder/holocron/actions/workflows/audit.yml)
+[![dependency status](https://deps.rs/repo/github/extinctCoder/holocron/status.svg)](https://deps.rs/repo/github/extinctCoder/holocron)
 [![crates.io](https://img.shields.io/crates/v/holocron.svg)](https://crates.io/crates/holocron)
+[![downloads](https://img.shields.io/crates/d/holocron.svg)](https://crates.io/crates/holocron)
 [![docs.rs](https://img.shields.io/docsrs/holocron)](https://docs.rs/holocron)
 [![license](https://img.shields.io/crates/l/holocron.svg)](#license)
 
