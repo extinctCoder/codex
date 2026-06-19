@@ -1,0 +1,53 @@
+# Pre-commit hooks for Holocron. See https://pre-commit.com
+#
+# Install once:   pre-commit install --install-hooks --hook-type commit-msg
+# Run manually:   pre-commit run --all-files
+#
+# These mirror the CI checks (.github/workflows/) so failures surface locally
+# before a push, not after.
+repos:
+  # General file hygiene.
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  # Rust toolchain checks, run via the locally installed cargo.
+  - repo: local
+    hooks:
+      - id: cargo-fmt
+        name: cargo fmt
+        entry: cargo fmt --all --
+        language: system
+        types: [rust]
+        pass_filenames: false
+
+      - id: cargo-clippy
+        name: cargo clippy
+        entry: cargo clippy --all-targets --all-features -- -D warnings
+        language: system
+        types: [rust]
+        pass_filenames: false
+
+      - id: cargo-check
+        name: cargo check
+        entry: cargo check --all-targets --all-features
+        language: system
+        types: [rust]
+        pass_filenames: false
+
+  # Validate commit messages against Conventional Commits, reusing
+  # commitlint.config.mjs (same ruleset the CI commitlint workflow enforces).
+  - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
+    rev: v9.25.0
+    hooks:
+      - id: commitlint
+        stages: [commit-msg]
+        additional_dependencies: ["@commitlint/config-conventional"]

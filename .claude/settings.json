@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -l /rootCA.pem)",
+      "Bash(env -u REQUESTS_CA_BUNDLE -u SSL_CERT_FILE pre-commit run --all-files)",
+      "Bash(env -u REQUESTS_CA_BUNDLE -u SSL_CERT_FILE pre-commit install --install-hooks --hook-type commit-msg --hook-type pre-commit)",
+      "Bash(env -u REQUESTS_CA_BUNDLE -u SSL_CERT_FILE pre-commit run commitlint --hook-stage commit-msg --commit-msg-filename /dev/stdin)",
+      "Bash(env -u REQUESTS_CA_BUNDLE -u SSL_CERT_FILE npx --yes --package @commitlint/cli --package @commitlint/config-conventional commitlint --config commitlint.config.mjs)",
+      "Bash(find /Users/extinctcoder/.cache/pre-commit -name '.pre-commit-hooks.yaml' -path '*commitlint*' 2>/dev/null | head -1 | xargs cat 2>/dev/null)",
+      "Read(//Users/extinctcoder/.cache/pre-commit/**)",
+      "Bash(git commit *)",
+      "Read(//Users/extinctcoder/dotfiles/**)",
+      "Read(//opt/homebrew/etc/ca-certificates/**)",
+      "Bash(python3 -c \"import certifi; print\\('certifi:', certifi.where\\(\\)\\)\")",
+      "Bash(node -e \"console.log\\('node tls default works if no error'\\)\")",
+      "Bash(command -v mkcert)",
+      "Bash(echo \"mkcert path: $\\(command -v mkcert || echo 'NOT on PATH'\\)\")",
+      "Bash(mkcert -CAROOT)",
+      "Bash(echo \"CAROOT output: [$\\(mkcert -CAROOT 2>&1\\)]\")",
+      "Bash(ls -l \"$\\(mkcert -CAROOT 2>/dev/null\\)/rootCA.pem\")",
+      "Bash(grep -nE 'brew shellenv|HOMEBREW|/opt/homebrew|path_helper' ~/.zshrc /etc/zprofile 2>/dev/null; echo \"=== total lines in .zshrc ===\"; wc -l ~/.zshrc)",
+      "Read(//private/etc/**)",
+      "Bash(mkcert localhost *)",
+      "Bash(ls -l \"$\\(mkcert -CAROOT\\)/rootCA.pem\")",
+      "Read(//Users/extinctcoder/**)",
+      "Bash(zsh -i -c ' *)",
+      "Bash(grep -vE 'zoxide|ajeetdsouza|persists|Disable|^\\\\s*$|configuration issue|filing an issue')"
+    ],
+    "additionalDirectories": [
+      "/Users/extinctcoder"
+    ]
+  }
+}
