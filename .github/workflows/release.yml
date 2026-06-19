@@ -36,9 +36,12 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       # Prebuilt binaries — fast, no compilation.
+      # --force: rust-cache restores ~/.cargo/.crates.toml (the "installed" registry)
+      # but not the binaries themselves, so without --force binstall sees cocogitto as
+      # "already installed" and skips it, leaving `cog` missing on PATH.
       - uses: cargo-bins/cargo-binstall@main
       - name: Install cocogitto and cargo-edit
-        run: cargo binstall -y cocogitto cargo-edit
+        run: cargo binstall -y --force cocogitto cargo-edit
 
       - name: Configure git identity
         run: |
@@ -48,6 +51,9 @@ jobs:
       - name: Bump version, update changelog, and tag
         id: bump
         run: |
+          # Fail loudly if the tool is missing, rather than mistaking it for
+          # "no releasable changes" below and exiting green without releasing.
+          command -v cog >/dev/null || { echo "::error::cocogitto (cog) is not installed"; exit 1; }
           before=$(git describe --tags --abbrev=0 2>/dev/null || echo "none")
           # `cog bump --auto` exits non-zero when there are no releasable commits.
           if cog bump --auto; then
