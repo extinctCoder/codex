@@ -60,7 +60,9 @@
       "Bash(RUSTDOCFLAGS=\"-D warnings\" cargo doc --no-deps -q)",
       "Bash(env -u SSL_CERT_FILE -u REQUESTS_CA_BUNDLE curl -s -H \"User-Agent: holocron-check\" https://crates.io/api/v1/crates/holocron)",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); c=d.get\\('crate'\\); print\\('PUBLISHED — versions:', [v['num'] for v in d.get\\('versions',[]\\)]\\) if c else print\\('NOT on crates.io:', d.get\\('errors'\\)\\)\")",
-      "Bash(env -u GITHUB_TOKEN gh run list --workflow=release.yml --limit 6)"
+      "Bash(env -u GITHUB_TOKEN gh run list --workflow=release.yml --limit 6)",
+      "Bash(env -u GITHUB_TOKEN gh run view 27842228856)",
+      "Bash(env -u GITHUB_TOKEN gh run view --job=82403593683 --log)"
     ],
     "additionalDirectories": [
       "/Users/extinctcoder"

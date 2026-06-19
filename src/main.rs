@@ -27,7 +27,7 @@
 /// assert!(banner.contains("Holocron"));
 /// ```
 fn banner() -> &'static str {
-    "Hello from Holocron — a declarative schema & query compiler."
+    "Hello from Holocron — a declarative schema & query compiler for version 2."
 }
 
 /// Program entry point. Prints the project [`banner`].
