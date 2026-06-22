@@ -12,3 +12,10 @@ categories = ["database", "compilers"]
 [[bin]]
 name = "holocron"
 path = "src/main.rs"
+
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_yaml_ng = "0.10"
+indexmap = { version = "2", features = ["serde"] }
+thiserror = "2"

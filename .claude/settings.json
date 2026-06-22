@@ -72,7 +72,9 @@
       "Bash(env -u SSL_CERT_FILE -u REQUESTS_CA_BUNDLE curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" \"https://api.securityscorecards.dev/projects/github.com/extinctCoder/holocron/badge\")",
       "Bash(env -u GITHUB_TOKEN gh api repos/ossf/scorecard-action/releases/latest --jq '.tag_name')",
       "Bash(env -u GITHUB_TOKEN gh api repos/ossf/scorecard-action/tags --jq '.[].name')",
-      "Bash(python3 -c \"import yaml; yaml.safe_load\\(open\\('.github/workflows/scorecard.yml'\\)\\); print\\('scorecard.yml OK'\\)\")"
+      "Bash(python3 -c \"import yaml; yaml.safe_load\\(open\\('.github/workflows/scorecard.yml'\\)\\); print\\('scorecard.yml OK'\\)\")",
+      "Bash(cargo check *)",
+      "Bash(grep -vE \"warning:|^\\\\s*\\\\||^\\\\s*-->|never|generated|note:|^\\\\s*=|associated|^\\\\d+ \\\\||field|struct|enum|method|^$|zoxide|ajeetdsouza|persists|Disable|configuration issue|filing\")"
     ],
     "additionalDirectories": [
       "/Users/extinctcoder"
