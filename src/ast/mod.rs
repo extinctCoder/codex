@@ -7,6 +7,7 @@
 mod document;
 mod enum_type;
 mod join;
+mod parse;
 mod select;
 mod table;
 mod view;
@@ -14,6 +15,7 @@ mod view;
 pub use document::SchemaDocument;
 pub use enum_type::EnumType;
 pub use join::{FromClause, Join, JoinKind};
+pub use parse::parse_schema;
 pub use select::{SelectColumn, SelectExpression, SelectItem};
 pub use table::{Column, Index, PrimaryKey, Table};
 pub use view::View;
