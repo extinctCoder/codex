@@ -1,7 +1,7 @@
 # Should fail: this table is missing the required `columns` field.
 # Caught by L1 (parse) — exit 1.
 #
-# Run: cargo run -- samples/error_missing_key.yml
+# Run: cargo run -- samples/error_missing_key.holocron.yaml
 
 tables:
   - name: tasks

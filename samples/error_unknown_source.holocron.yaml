@@ -2,7 +2,7 @@
 # Caught by L3 (resolve views) — exit 1. The diagnostic lists every relation
 # the catalog DID know about, as a "did you mean" note.
 #
-# Run: cargo run -- samples/error_unknown_source.yml
+# Run: cargo run -- samples/error_unknown_source.holocron.yaml
 
 tables:
   - name: tasks

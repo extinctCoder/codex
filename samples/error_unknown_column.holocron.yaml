@@ -2,7 +2,7 @@
 # Caught by L3 — exit 1. The diagnostic lists the columns that ARE on
 # the relation as a "did you mean" note.
 #
-# Run: cargo run -- samples/error_unknown_column.yml
+# Run: cargo run -- samples/error_unknown_column.holocron.yaml
 
 tables:
   - name: tasks

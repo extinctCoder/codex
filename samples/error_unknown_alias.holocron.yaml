@@ -1,14 +1,14 @@
 # Should fail: the select references alias `x`, which was never declared in
 # `from:` or `join:`. Caught by L3 (resolve views) — exit 1.
 #
-# Run: cargo run -- samples/error_unknown_alias.yml
+# Run: cargo run -- samples/error_unknown_alias.holocron.yaml
 
 tables:
   - name: tasks
     columns:
       task_id: { type: uuid }
-      title:   { type: text }
-    primary_key: { columns: [task_id] }
+      title: { type: text }
+    primary_key: { columns: [ task_id ] }
 
 views:
   - name: open_tasks

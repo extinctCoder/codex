@@ -1,5 +1,5 @@
 # Minimal happy path: one enum, one table.
-# Run: cargo run -- samples/minimal.yml
+# Run: cargo run -- samples/minimal.holocron.yaml
 
 types:
   - name: task_state

@@ -2,7 +2,7 @@
 # slice yet. They'll come in with the typed-escape-hatch step (DESIGN §6.1).
 # Caught by L3 (resolve views) — exit 1.
 #
-# Run: cargo run -- samples/error_unsupported_expression.yml
+# Run: cargo run -- samples/error_unsupported_expression.holocron.yaml
 
 tables:
   - name: tasks

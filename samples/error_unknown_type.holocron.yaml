@@ -1,7 +1,7 @@
 # Should fail: `not_a_real_type` is neither a built-in nor a declared enum.
 # Caught by L2 (catalog build) — exit 1.
 #
-# Run: cargo run -- samples/error_unknown_type.yml
+# Run: cargo run -- samples/error_unknown_type.holocron.yaml
 
 tables:
   - name: tasks

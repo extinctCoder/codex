@@ -1,7 +1,7 @@
 # Should fail: two enum types share the name `status`.
 # Caught by L2 (catalog build) — exit 1.
 #
-# Run: cargo run -- samples/error_duplicate_enum.yml
+# Run: cargo run -- samples/error_duplicate_enum.holocron.yaml
 
 types:
   - name: status

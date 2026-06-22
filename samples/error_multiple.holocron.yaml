@@ -12,7 +12,7 @@
 #   4. line 42 — view sources an unknown table (`ghost`)
 #   5. line 50 — view selects an unknown alias (`x`)
 #
-# Run: cargo run -- samples/error_multiple.yml
+# Run: cargo run -- samples/error_multiple.holocron.yaml
 #
 # Tip: comment out the higher-line errors as you fix them to see the
 # lower ones surface, until the file compiles cleanly.

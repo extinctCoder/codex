@@ -2,7 +2,7 @@
 # serde's `deny_unknown_fields` rejects it and lists the keys that ARE allowed.
 # Caught by L1 (parse) — exit 1.
 #
-# Run: cargo run -- samples/error_unknown_key.yml
+# Run: cargo run -- samples/error_unknown_key.holocron.yaml
 
 tables:
   - name: tasks

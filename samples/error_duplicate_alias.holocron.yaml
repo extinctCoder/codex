@@ -2,7 +2,7 @@
 # Aliases must be unique within a view's scope.
 # Caught by L3 (resolve views) — exit 1.
 #
-# Run: cargo run -- samples/error_duplicate_alias.yml
+# Run: cargo run -- samples/error_duplicate_alias.holocron.yaml
 
 tables:
   - name: a

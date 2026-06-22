@@ -4,15 +4,15 @@
 #
 # Fix: add `from: a` or `from: b` to the select item.
 #
-# Run: cargo run -- samples/error_ambiguous_source.yml
+# Run: cargo run -- samples/error_ambiguous_source.holocron.yaml
 
 tables:
   - name: a
     columns: { id: { type: uuid } }
-    primary_key: { columns: [id] }
+    primary_key: { columns: [ id ] }
   - name: b
     columns: { id: { type: uuid }, label: { type: text } }
-    primary_key: { columns: [id] }
+    primary_key: { columns: [ id ] }
 
 views:
   - name: ambig_view

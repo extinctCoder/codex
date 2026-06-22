@@ -3,7 +3,7 @@
 #
 # Valid kinds: INNER, LEFT, RIGHT, FULL.
 #
-# Run: cargo run -- samples/error_bad_join_type.yml
+# Run: cargo run -- samples/error_bad_join_type.holocron.yaml
 
 tables:
   - name: a

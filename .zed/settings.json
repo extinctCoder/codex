@@ -1,0 +1,17 @@
+{
+  "lsp": {
+    "holocron": {
+      "binary": {
+        "path": "/Users/extinctcoder/personal/holocron/target/release/holocron-lsp",
+        "arguments": []
+      }
+    }
+  },
+  "languages": {
+    "YAML": {
+      "language_servers": [
+        "holocron"
+      ]
+    }
+  }
+}

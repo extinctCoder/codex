@@ -8,10 +8,16 @@ repository = "https://github.com/extinctCoder/holocron"
 homepage = "https://extinctcoder.github.io/holocron/"
 keywords = ["sql", "schema", "compiler", "query", "yaml"]
 categories = ["database", "compilers"]
+# Default binary for `cargo run` (we ship a second one, holocron-lsp, behind --bin).
+default-run = "holocron"
 
 [[bin]]
 name = "holocron"
 path = "src/main.rs"
+
+[[bin]]
+name = "holocron-lsp"
+path = "src/bin/lsp.rs"
 
 
 [dependencies]
@@ -19,3 +25,5 @@ ariadne = "0.5"
 indexmap = "2"
 marked-yaml = "0.8"
 thiserror = "2"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "io-std"] }
+tower-lsp = "0.20"

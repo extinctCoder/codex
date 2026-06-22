@@ -3,7 +3,7 @@
 # a view with a LEFT JOIN, raw WHERE/ORDER BY clauses, and per-column
 # filterable/searchable flags on the view's select items.
 #
-# Run: cargo run -- samples/blog.yml
+# Run: cargo run -- samples/blog.holocron.yaml
 
 types:
   - name: post_status

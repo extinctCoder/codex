@@ -4,7 +4,7 @@
 # `using`); views with multiple joins, raw WHERE/ORDER BY/LIMIT, and
 # per-column filterable/searchable flags.
 #
-# Run: cargo run -- samples/full_features.yml
+# Run: cargo run -- samples/full_features.holocron.yaml
 
 types:
   - name: priority
