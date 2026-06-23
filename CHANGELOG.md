@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.5.0](https://github.com/holocron-lang/holocron/compare/478f8b68cb73ddc6bf432ebbd45f996770ad65ea..v0.5.0) - 2026-06-23
+#### Features
+- collect all errors per phase instead of bailing on the first - ([478f8b6](https://github.com/holocron-lang/holocron/commit/478f8b68cb73ddc6bf432ebbd45f996770ad65ea)) - darthVader, Claude Opus 4.7 (1M context)
+
+- - -
+
 ## [v0.4.0](https://github.com/holocron-lang/holocron/compare/fae972a355a989046cc4f0f968b4ca04ecf7b13e..v0.4.0) - 2026-06-23
 #### Features
 - extract holocron-lsp into its own crate - ([0e72e09](https://github.com/holocron-lang/holocron/commit/0e72e0946d2993a4a34ecda2f83507ecadfcc0d8)) - darthVader, Claude Opus 4.7 (1M context)
