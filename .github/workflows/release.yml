@@ -60,15 +60,22 @@ jobs:
           # "no releasable changes" below and exiting green without releasing.
           command -v cog >/dev/null || { echo "::error::cocogitto (cog) is not installed"; exit 1; }
           before=$(git describe --tags --abbrev=0 2>/dev/null || echo "none")
-          # `cog bump --auto` exits non-zero when there are no releasable commits.
+          # cog bump --auto's exit code does NOT reliably indicate "released vs not".
+          # For docs/chore/ci-only commits it exits 0 *without* creating a tag, so
+          # the only sound signal is whether the latest tag actually advanced.
           if cog bump --auto; then
-            tag=$(git describe --tags --abbrev=0)
-            echo "released=true" >> "$GITHUB_OUTPUT"
-            echo "tag=$tag" >> "$GITHUB_OUTPUT"
-            echo "Released $tag (previous: $before)"
+            after=$(git describe --tags --abbrev=0)
+            if [ "$after" != "$before" ]; then
+              echo "released=true" >> "$GITHUB_OUTPUT"
+              echo "tag=$after" >> "$GITHUB_OUTPUT"
+              echo "Released $after (previous: $before)"
+            else
+              echo "released=false" >> "$GITHUB_OUTPUT"
+              echo "No releasable changes since $before — tag unchanged."
+            fi
           else
             echo "released=false" >> "$GITHUB_OUTPUT"
-            echo "No releasable changes since $before — skipping release."
+            echo "cog bump --auto exited non-zero — skipping release."
           fi
 
       - name: Push commit and tag
