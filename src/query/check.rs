@@ -22,32 +22,41 @@ impl CheckedQuery {
 /// the target relation, be filterable, and use an operator the column's type
 /// supports.
 ///
+/// Collects every error across the filter tree so callers can render them
+/// in one pass.
+///
 /// # Errors
-/// Unknown relation, unknown column, non-filterable column, or unsupported
-/// operator-for-type.
-pub fn check_query(catalog: &Catalog, query: Query) -> Result<CheckedQuery, HolocronError> {
-    let relation = catalog
-        .relation(&query.relation)
-        .ok_or_else(|| HolocronError::unknown_relation(&query.relation))?;
+/// Unknown relation (short-circuits — no relation, no filter to check),
+/// or any number of unknown-column / non-filterable / operator-mismatch
+/// errors gathered across the filter tree.
+pub fn check_query(catalog: &Catalog, query: Query) -> Result<CheckedQuery, Vec<HolocronError>> {
+    let Some(relation) = catalog.relation(&query.relation) else {
+        return Err(vec![HolocronError::unknown_relation(&query.relation)]);
+    };
+    let mut errors = Vec::new();
     if let Some(filter) = &query.filter {
-        check_filter(filter, &query.relation, relation)?;
+        check_filter(filter, &query.relation, relation, &mut errors);
     }
-    Ok(CheckedQuery { query })
+    if errors.is_empty() {
+        Ok(CheckedQuery { query })
+    } else {
+        Err(errors)
+    }
 }
 
 fn check_filter(
     filter: &Filter,
     relation_name: &str,
     relation: &CatalogRelation,
-) -> Result<(), HolocronError> {
+    errors: &mut Vec<HolocronError>,
+) {
     match filter {
         Filter::And(children) | Filter::Or(children) => {
             for child in children {
-                check_filter(child, relation_name, relation)?;
+                check_filter(child, relation_name, relation, errors);
             }
-            Ok(())
         }
-        Filter::Leaf(comparison) => check_comparison(comparison, relation_name, relation),
+        Filter::Leaf(comparison) => check_comparison(comparison, relation_name, relation, errors),
     }
 }
 
@@ -55,62 +64,69 @@ fn check_comparison(
     comparison: &Comparison,
     relation_name: &str,
     relation: &CatalogRelation,
-) -> Result<(), HolocronError> {
+    errors: &mut Vec<HolocronError>,
+) {
     match comparison {
         Comparison::Compare { column, op, .. } => {
-            let resolved = resolve_filterable(relation_name, relation, column)?;
+            let Some(resolved) = resolve_filterable(relation_name, relation, column, errors) else {
+                return;
+            };
             if !op.supported_by(&resolved.data_type) {
-                return Err(HolocronError::operator_not_supported(
+                errors.push(HolocronError::operator_not_supported(
                     relation_name,
                     column,
                     resolved.data_type.name(),
                     op.name(),
                 ));
             }
-            Ok(())
         }
         Comparison::Set { column, op, .. } => {
-            let resolved = resolve_filterable(relation_name, relation, column)?;
+            let Some(resolved) = resolve_filterable(relation_name, relation, column, errors) else {
+                return;
+            };
             if !op.supported_by(&resolved.data_type) {
-                return Err(HolocronError::operator_not_supported(
+                errors.push(HolocronError::operator_not_supported(
                     relation_name,
                     column,
                     resolved.data_type.name(),
                     op.name(),
                 ));
             }
-            Ok(())
         }
         Comparison::NullCheck { column, .. } => {
             // `=null=` is supported on every type, so resolution + filterable check is enough.
-            resolve_filterable(relation_name, relation, column)?;
-            Ok(())
+            resolve_filterable(relation_name, relation, column, errors);
         }
     }
 }
 
-/// Resolve a referenced column and confirm it is filterable.
+/// Resolve a referenced column and confirm it is filterable. Appends to the
+/// shared error list when either check fails; returns `None` in that case so
+/// the caller can skip downstream checks on this leaf.
 fn resolve_filterable<'r>(
     relation_name: &str,
     relation: &'r CatalogRelation,
     column: &str,
-) -> Result<&'r CatalogColumn, HolocronError> {
-    let resolved = relation.column(column).ok_or_else(|| {
+    errors: &mut Vec<HolocronError>,
+) -> Option<&'r CatalogColumn> {
+    let Some(resolved) = relation.column(column) else {
         let candidates = relation
             .columns
             .iter()
             .map(|column| column.name.clone())
             .collect();
         // Queries are built programmatically in this layer; no AST span to attach.
-        HolocronError::unknown_column(
+        errors.push(HolocronError::unknown_column(
             relation_name,
             column,
             candidates,
             crate::span::Span::default(),
-        )
-    })?;
+        ));
+        return None;
+    };
     if !resolved.filterable {
-        return Err(HolocronError::not_filterable(relation_name, column));
+        errors.push(HolocronError::not_filterable(relation_name, column));
+        return None;
     }
-    Ok(resolved)
+    Some(resolved)
 }

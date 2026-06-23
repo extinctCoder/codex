@@ -13,13 +13,19 @@ pub struct Compiled {
 }
 
 /// Compile a YAML schema end-to-end: parse → build catalog → resolve views →
-/// emit DDL. The single entry point that strings every phase together.
+/// emit DDL.
+///
+/// Each phase collects *every* error it finds before returning, so on
+/// failure the caller receives the full list of problems for one rendering
+/// pass — see CLAUDE.md `HOLO-DIAGNOSTICS`. A phase only runs once the
+/// previous one succeeded (cascade prevention).
 ///
 /// # Errors
-/// Any error from the parse, catalog-build, or view-resolve phases. Emit is
-/// infallible by construction (it runs only after every check has passed).
-pub fn compile(input: &str) -> Result<Compiled, HolocronError> {
-    let document = parse_schema(input)?;
+/// Returns every diagnostic the failing phase produced, as a `Vec`. Parse
+/// errors arrive wrapped in a single-element vec (a broken YAML tree leaves
+/// nothing useful to keep walking).
+pub fn compile(input: &str) -> Result<Compiled, Vec<HolocronError>> {
+    let document = parse_schema(input).map_err(|error| vec![error])?;
     let catalog = build_catalog(&document)?;
     let catalog = resolve_views(catalog, &document)?;
     let ddl = emit_schema(&document);

@@ -44,9 +44,12 @@ fn main() -> ExitCode {
             print!("{}", result.ddl);
             ExitCode::SUCCESS
         }
-        Err(error) => {
-            // Render with ariadne so the offending YAML line gets a `^^^` underline.
-            eprint!("{}", error.render(filename, &input));
+        Err(errors) => {
+            // Render every diagnostic the failing phase collected — one ariadne
+            // report per error, so the user sees the full list in one run.
+            for error in &errors {
+                eprint!("{}", error.render(filename, &input));
+            }
             ExitCode::FAILURE
         }
     }

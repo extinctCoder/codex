@@ -1,21 +1,15 @@
 # Kitchen-sink: this file contains MULTIPLE errors of different kinds.
+# Each phase collects every error it finds before returning, so one run
+# surfaces all five at once — see CLAUDE.md HOLO-DIAGNOSTICS.
 #
-# ⚠️ Current limitation: the compiler bails on the FIRST error and exits.
-# So a single run will only surface one of the issues below — fix it,
-# re-run, the next one shows up, repeat. "Collect all errors" is a planned
-# improvement (CLAUDE.md HOLO-DIAGNOSTICS).
-#
-# Errors in this file:
-#   1. line 20 — duplicate enum type `status`
-#   2. line 28 — unknown column type `not_a_type`
-#   3. line 35 — duplicate relation `tasks`
-#   4. line 42 — view sources an unknown table (`ghost`)
-#   5. line 50 — view selects an unknown alias (`x`)
+# Errors in this file (all reported together):
+#   1. line 23 — duplicate enum type `status`           (L2: catalog/enums)
+#   2. line 30 — unknown column type `not_a_type`        (L2: catalog/tables)
+#   3. line 33 — duplicate relation `tasks`              (L2: catalog/tables)
+#   4. line 40 — view sources an unknown table (`ghost`) (L3: resolve)
+#   5. line 47 — view selects an unknown alias (`x`)     (L3: resolve)
 #
 # Run: cargo run -- samples/error_multiple.holocron.yaml
-#
-# Tip: comment out the higher-line errors as you fix them to see the
-# lower ones surface, until the file compiles cleanly.
 
 types:
   - name: status

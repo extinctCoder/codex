@@ -27,6 +27,17 @@ pub struct Catalog {
 }
 
 impl Catalog {
+    /// Construct an empty catalog pre-populated with the given enum types.
+    /// Used by [`build_catalog`] after collecting enum errors so the rest of
+    /// the build can continue against a partial enum map.
+    pub(crate) fn from_enums(enums: IndexMap<String, Vec<String>>) -> Self {
+        Self {
+            enums,
+            relations: IndexMap::new(),
+            relation_spans: IndexMap::new(),
+        }
+    }
+
     /// Look up a relation (table or view) by name.
     pub fn relation(&self, name: &str) -> Option<&CatalogRelation> {
         self.relations.get(name)
