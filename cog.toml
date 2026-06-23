@@ -23,5 +23,5 @@ path = "CHANGELOG.md"
 template = "remote"
 remote = "github.com"
 repository = "holocron"
-owner = "extinctCoder"
+owner = "holocron-lang"
 authors = []

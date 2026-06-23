@@ -4,8 +4,8 @@ version = "0.1.8"
 edition = "2021"
 description = "Declarative schema & query compiler — one YAML as the source of truth for SQL schema and a type-checked query catalog."
 license = "MPL-2.0"
-repository = "https://github.com/extinctCoder/holocron"
-homepage = "https://extinctcoder.github.io/holocron/"
+repository = "https://github.com/holocron-lang/holocron"
+homepage = "https://holocron-lang.github.io/holocron/"
 keywords = ["sql", "schema", "compiler", "query", "yaml"]
 categories = ["database", "compilers"]
 # Default binary for `cargo run` (we ship a second one, holocron-lsp, behind --bin).

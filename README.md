@@ -1,9 +1,9 @@
 # Holocron
 
-[![CI](https://github.com/extinctCoder/holocron/actions/workflows/ci.yml/badge.svg)](https://github.com/extinctCoder/holocron/actions/workflows/ci.yml)
-[![Security Audit](https://github.com/extinctCoder/holocron/actions/workflows/audit.yml/badge.svg)](https://github.com/extinctCoder/holocron/actions/workflows/audit.yml)
-[![dependency status](https://deps.rs/repo/github/extinctCoder/holocron/status.svg)](https://deps.rs/repo/github/extinctCoder/holocron)
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/extinctCoder/holocron/badge)](https://securityscorecards.dev/viewer/?uri=github.com/extinctCoder/holocron)
+[![CI](https://github.com/holocron-lang/holocron/actions/workflows/ci.yml/badge.svg)](https://github.com/holocron-lang/holocron/actions/workflows/ci.yml)
+[![Security Audit](https://github.com/holocron-lang/holocron/actions/workflows/audit.yml/badge.svg)](https://github.com/holocron-lang/holocron/actions/workflows/audit.yml)
+[![dependency status](https://deps.rs/repo/github/holocron-lang/holocron/status.svg)](https://deps.rs/repo/github/holocron-lang/holocron)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/holocron-lang/holocron/badge)](https://securityscorecards.dev/viewer/?uri=github.com/holocron-lang/holocron)
 [![crates.io](https://img.shields.io/crates/v/holocron.svg)](https://crates.io/crates/holocron)
 [![downloads](https://img.shields.io/crates/d/holocron.svg)](https://crates.io/crates/holocron)
 [![docs.rs](https://img.shields.io/docsrs/holocron)](https://docs.rs/holocron)
@@ -59,7 +59,7 @@ Installs two binaries:
 - **`holocron-lsp`** — the editor LSP server
 
 Or download pre-built archives for macOS / Linux / Windows from the
-[latest GitHub Release](https://github.com/extinctCoder/holocron/releases/latest)
+[latest GitHub Release](https://github.com/holocron-lang/holocron/releases/latest)
 (each archive contains both binaries).
 
 To use the compiler as a Rust library:
